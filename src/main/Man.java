@@ -55,9 +55,8 @@ public class Man {
         simulation.makeContact(this);
     }
 
-    // Заставляем человека делать свои делишки
-    // Основной метод
-    public void doDela(Simulation sim){
+    // Проверка таймеров
+    private void timeCheck(Simulation sim){
         //==== Время для выздоровления и чихания
         if (condition == 1){
             // Время для чихания
@@ -71,7 +70,7 @@ public class Man {
             // Время для выздоровления
             if (timeRecovery == 0) {
                 condition = 2;
-                sim.setAmountCond(0,-1,1);
+                sim.setAmountCond(0,0,-1,0,1,0);
             }
             else {
                 timeRecovery--;
@@ -85,7 +84,14 @@ public class Man {
         else{
             timeChangeDirect = (int)(Math.random()*(sim.timeChangeDirect_b-sim.timeChangeDirect_a+1)+sim.timeChangeDirect_a);
         }
-        //===== Переместится по карте
+    }
+
+    // Заставляем человека делать свои делишки
+    // Основной метод
+    public void doDela(Simulation sim){
+        // Проверяем таймеры
+        timeCheck(sim);
+        // Переместится по карте
         move(sim);
     }
 

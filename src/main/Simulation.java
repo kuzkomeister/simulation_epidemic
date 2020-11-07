@@ -5,23 +5,29 @@ import java.util.ArrayList;
 public class Simulation {
 
     private ArrayList<Man> people;    // список жалких подопытных людишек
+    private long iter = 0;            // номер текущей итерации
     //========== Настройки карты/симуляции
     private float sizeX, sizeY; // размеры карты по х и у
     private int amountMans;     // количество людей на карте при старте симуляции
     private float radiusMan;         // размер человека
-    private float radiusManSqr;      // размер человека (радиус кружка на мапе) (в квадрате)
+    private float radiusManSqr;      // размер человека (в квадрате)
     //========== Настройки человеков
     // интервалы для рандома
-    public final int timeRecovery_a, timeRecovery_b;
-    public final int timeSneeze_a, timeSneeze_b;
-    public final int timeChangeDirect_a, timeChangeDirect_b;
+    public final int timeRecovery_a, timeRecovery_b;        // для выздоровления
+    public final int timeSneeze_a, timeSneeze_b;            // для чихания
+    public final int timeChangeDirect_a, timeChangeDirect_b;// для смены направления движения
     //========== Настройки болезни
     private float radiusInf;        // радиус заражения
     private float radiusInfSqr;     // радиус заражения (в квадрате)
+
+    private float radiusSoc;        // радиус социального дистанцирования
+    private float radiusSocSqr;     // радиус социального дистанцирования (в квадрате)
     //========== Статистика
     private long stContacts = 0;    // количество контактов за сессию
-    private int iterFinal = 0;
-    private int amountZd, amountInf, amountVzd; // Количество здоровых,инфицированных,выздоревших в текущий момент времени
+    private int iterFinal = 0;      // номер итерации, на которой закончились изменения
+    // Количество здоровых,инфицированных в инкубац. периоде, инфиц. с симптомами, инфиц. без симптомов
+    // выздоровевших, умерших в текущий момент времени
+    private int amountZd, amountInfInc, amountInfSymp, amountInfNotSymp, amountVzd, amountDied;
     //=====================
 
 
@@ -34,8 +40,11 @@ public class Simulation {
         this.sizeX = sizeX; this.sizeY = sizeY;
         this.amountMans = amountMans+amountInf;
         amountZd = amountMans;
-        this.amountInf = amountInf;
+        amountInfInc = 0;
+        amountInfSymp = amountInf;
+        amountInfNotSymp = 0;
         amountVzd = 0;
+        amountDied = 0;
 
         radiusMan = 0.2f;
         radiusManSqr = (float) Math.pow(radiusMan,2);
@@ -115,7 +124,7 @@ public class Simulation {
                             // устанавливаем время выздоровления
                             temp.setTimeRecovery((int)(Math.random()*(timeRecovery_b-timeRecovery_a+1)+timeRecovery_a));
                             // статистика
-                            setAmountCond(-1,1,0);
+                            setAmountCond(-1,0,1,0,0,0);
                         }
                 }
             }
@@ -124,55 +133,39 @@ public class Simulation {
     }
 
     // Заводим моторчик нашей мапы
-    public void start(int amountIter) {
-        for (int iter = 0; iter < amountIter; iter++) {
-            for (Man temp : people) {
-                temp.doDela(this);
-            }
-            if (amountInf == 0 && iterFinal==0) iterFinal = iter;
+    public void iterate() {
+        for (Man temp : people) {
+            temp.doDela(this);
         }
-
+        iter++;
     }
 
     //=================================================
     // для дебага
-
-    public void printInfoMans(){
-        Man temp;
-        int zd = 0, inf = 0, vzd = 0;
-        for (int i = 0; i < this.amountMans; ++i) {
-            temp = this.people.get(i);
-            System.out.print(temp.getCondition());
-            System.out.print("  ");
-            System.out.print(temp.getX());
-            System.out.print("  ");
-            System.out.println(temp.getY());
-        }
+    public void printInfoStat(){
+        System.out.println("=======================================================");
+        System.out.println("Здоровых: "+amountZd);
+        System.out.println("Инфицированных в инкубационном периоде: "+amountInfInc);
+        System.out.println("Инфицированных в клиническом периоде: "+amountInfSymp);
+        System.out.println("Инфицированных без проявления симптомов: "+amountInfNotSymp);
+        System.out.println("Выздоровевших: "+amountVzd);
+        System.out.println("Смертей: "+amountDied);
     }
-
     //======== Статистика
-    public void setAmountCond(int diffZd, int diffInf, int diffVzd){
-        if ((diffZd + diffInf + diffVzd) == 0){
+    // изменение статистики количества людей в различных состояниях
+    public void setAmountCond(int diffZd, int diffInfInc, int diffInfSymp, int diffInfNotSymp, int diffVzd, int diffDied){
+        if ((diffZd + diffInfInc + diffInfSymp + diffInfNotSymp + diffVzd + diffDied) == 0){
             amountZd+=diffZd;
-            amountInf+=diffInf;
+            amountInfInc+=diffInfInc;
+            amountInfSymp+=diffInfSymp;
+            amountInfNotSymp+=diffInfNotSymp;
             amountVzd+=diffVzd;
+            amountDied+=diffDied;
         }
     }
 
-    public int getAmountZd(){
-        return amountZd;
-    }
-
-    public int getAmountInf(){
-        return amountInf;
-    }
-
-    public int getAmountVzd(){
-        return amountVzd;
-    }
-
-    public int getIterFinal(){
-        return iterFinal;
+    public ArrayList<Man> getPeople(){
+        return people;
     }
     //======== Размеры карты
     public void setSizeX(float sizeX){

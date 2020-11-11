@@ -9,9 +9,9 @@ public class Man {
     private float x,y;              // Координаты человека на карте
     private float[] vectorDirection;// Вектор направления человека
 
-    boolean mask;       // Надета маска
-    boolean socDist;    // Соблюдает социальное дистанцирование
-    boolean infectHand; // Инфицированы ли руки
+    private final boolean mask;       // Надета маска
+    private final boolean socDist;    // Соблюдает социальное дистанцирование
+    private boolean infectHand; // Инфицированы ли руки
     //===== Текущее время
     private int timeRecovery;       // время необходимое для выздоровления
     private int timeInfInc;         // время инкубационного периода
@@ -19,17 +19,17 @@ public class Man {
     private int timeHandToFaceContact;// время между контактом рук с лицом
     private int timeWash;           // время между мытьем/дезинфекцией рук
     private int timeChangeDirect = 1;   // время между сменой направлений
+    private int timeHandshake = 1;      // время между пожатием рук
+    private int timeInfHand = 0;            // время между "загрязнением" своих рук
 
     //===== Вероятности
     private final float probabilityInfection;     // Текущая вероятность удачной попытки заразить
     private final float probabilityGetInfection;  // Текущая вероятность удачной попытки заразиться
-    private final float probabilityGetInfHand;    // Текущая вероятность удачной попытки заразиться из-за контакта рук с лицом
     //=================
 
     // Конструктор
     public Man(byte condition, boolean mask, boolean socDist,
                float maskProtectionFor, float maskProtectionFrom,
-               float probabilityGetInfHand,
                float x, float y){
         //
         this.condition = condition;
@@ -49,7 +49,6 @@ public class Man {
             probabilityInfection = 1.0f;
             probabilityGetInfection = 1.0f;
         }
-        this.probabilityGetInfHand = probabilityGetInfHand;
     }
 
     // Поменять направление движения
@@ -62,7 +61,7 @@ public class Man {
     public boolean move(Simulation sim){
         boolean res = true;
         if (sim.checkBarrier(x+ vectorDirection[0],y+ vectorDirection[1])
-                && sim.checkPlace(x+ vectorDirection[0], y+ vectorDirection[1])) {
+                && sim.checkPlace(x+ vectorDirection[0], y+ vectorDirection[1])){
             x += vectorDirection[0];
             y += vectorDirection[1];
         }
@@ -71,30 +70,28 @@ public class Man {
     }
 
     // Произвести контакт
-    public void contact(Simulation simulation){
-        simulation.makeContact(this);
+    public void contact(Simulation simulation, boolean contactOrhand){
+        if (contactOrhand){
+            simulation.makeContact(this, contactOrhand);
+        }
+        else{
+            if (infectHand)
+                simulation.makeContact(this, contactOrhand);
+        }
     }
 
     // Проверка таймеров
-    private void timeCheck(Simulation sim){
+    private void checkTimers(Simulation sim){
         //===== Таймеры для смены состояний
         switch (condition){
             case 0: // Здоров
-                // Таймер для мытья/дезинфекции рук
-                if (timeWash == 0){
-                    infectHand = false;
-                    timeWash = (int)(Math.random()*(sim.timeWash_b-sim.timeWash_a+1)+sim.timeWash_a);
-                }
-                else{
-                    timeWash--;
-                }
-
                 // Таймер для "трогания" лица
                 if (timeHandToFaceContact == 0){
                     // Грязные ли руки
                     if (infectHand){
-                        if (Math.random() <= probabilityGetInfHand){
+                        if (Math.random() <= sim.probabilityInfHand){
                             condition = 1;
+                            sim.incStHandshakeInf();
                             timeInfInc = (int)(Math.random()*(sim.timeInfInc_b-sim.timeInfInc_a+1)+sim.timeInfInc_a);
                             sim.setAmountCond(-1,1,0,0,0,0);
                         }
@@ -130,11 +127,20 @@ public class Man {
             case 2, 5: // Инфицирован. В клиническом периоде или без проявления симптомов
                 // Таймер чихания
                 if (timeSneeze == 0){
-                    contact(sim);
+                    contact(sim,true);
                     timeSneeze = (int)(Math.random()*(sim.timeSneeze_b-sim.timeSneeze_a+1)+sim.timeSneeze_a);
                 }
                 else{
                     timeSneeze--;
+                }
+
+                // Таймер для "загрязнения" своих рук
+                if (timeInfHand == 0){
+                    infectHand = true;
+                    timeInfHand = (int)(Math.random()*(sim.timeInfHand_b-sim.timeInfHand_a+1)+sim.timeInfHand_a);
+                }
+                else{
+                    timeInfHand--;
                 }
 
                 // Таймер выздоровления
@@ -165,6 +171,24 @@ public class Man {
                 break;
         }
 
+        // Таймер для мытья/дезинфекции рук
+        if (timeWash == 0){
+            infectHand = false;
+            timeWash = (int)(Math.random()*(sim.timeWash_b-sim.timeWash_a+1)+sim.timeWash_a);
+        }
+        else{
+            timeWash--;
+        }
+
+        //==== Пожать руки с кем-то
+        if (timeHandshake == 0){
+            contact(sim,false);
+            timeHandshake = (int)(Math.random()*(sim.timeHandshake_b -sim.timeHandshake_a +1)+sim.timeHandshake_a);
+        }
+        else{
+            timeHandshake--;
+        }
+
         //===== Время для смены направления движения
         if (timeChangeDirect == 0){
             timeChangeDirect = (int)(Math.random()*(sim.timeChangeDirect_b-sim.timeChangeDirect_a+1)+sim.timeChangeDirect_a);
@@ -179,10 +203,12 @@ public class Man {
     // Заставляем человека делать свои делишки
     // Основной метод
     public void doDela(Simulation sim){
-        // Проверяем таймеры
-        timeCheck(sim);
-        // Переместится по карте
-        move(sim);
+        if (condition != 4){
+            // Проверяем таймеры
+            checkTimers(sim);
+            // Переместится по карте
+            move(sim);
+        }
     }
 
     //============= Время
@@ -205,6 +231,14 @@ public class Man {
 
     public byte getCondition(){
         return this.condition;
+    }
+
+    public void setInfectHand(boolean conditionHand){
+        infectHand = conditionHand;
+    }
+
+    public boolean getInfectHand(){
+        return infectHand;
     }
     //============ Координаты
     public float getX(){

@@ -1,63 +1,65 @@
 package main;
 
 import java.io.IOException;
-import java.util.List;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
 
-        // Осталось рандомное распределение масок и соц дист, соблюдение соц дистанции
-
+        final int MAX_ITER = 50000;
 
         Simulation simulation = new Simulation(
-                // Размер карты
-                70, 70,
-                // Количество людей в состояниях
-                900,50,50, 0,0,0,
-                // Количество людей: в масках, соблюдающих соц дистанцию, моющих людей
-                1000,0,
-                // Интервал для времени между чихами
-                90,110,
-
-                //===== Все что связано с руками и лицом
-                // Интервал для времени между контактом рук с лицом
-                140,160,
-                // Интервал для времени между мытьем рук
-                140,160,
-                // Интервал для пожатия рук
-                100,200,
-                // Интервал для "загрязнения" своих рук
-                50,100,
-                // Вероятность заразиться от контакта рук с лицом
-                0.5f,
-
-                // Интервал для смены направления движения
-                50,100,
-                // Интервал для выхода из инкубационного и клинического периода
-                400,600,
-                900,1000,
-
-                // Вероятности стать: бессимптомным больным, умереть
-                0.3f, 0.2f,
-                // Эффективность защиты маски
-                0.5f,0.25f,
-                // Радиусы: соц. дистанции, человека, заражения
-                2.0f, 0.2f,1.0f,
-                // адрес и название файла вывода
+                32,  32,
+                20,0,5, 0,0,
+                5,0,0,0,0,
+                10,0,1,0,0,
+                5,0,0,0,0,
+                // Настройки людей
+                new ConfigForHuman(
+                        90,110,
+                        140,160,
+                        130,150,
+                        50,100,
+                        100,200,
+                        50,100,
+                        400,600,
+                        900,1000,
+                        0.4f, 0.1f,
+                        0.1f,
+                        0.5f, 0.25f,
+                        3.0f, 0.2f, 2.0f,1.0f
+                ),
                 "C:\\Users\\User\\Desktop\\output.txt"
         );
+        System.out.println("Инициализирована!");
 
-        for (int iter = 0; iter < 5000; iter++){
-            simulation.iterate();
+        PaintingMap map = new PaintingMap(32,32,Human.config.radiusMan,simulation.getPeople(),simulation.getSneeze());
+        map.setVisible(true);
+
+        long time = System.currentTimeMillis();
+        for (int iter = 0; iter < MAX_ITER; iter++){
+            if (simulation.getIterFinal() == 0){
+                simulation.iterate();
+                map.repaint();
+                Thread.sleep(40);
+            }
+            else{
+                break;
+            }
         }
         simulation.printInfoStat();
-        simulation.closeFile();
+        System.out.println("========= Время =======");
+        long newTime = System.currentTimeMillis();
+        System.out.println("Выполнено за "+(float)(newTime-time)/1000+" секунд");
+        System.out.println("          за "+(float)(newTime-time)/60000+" минут");
+        System.out.println("========= Дебаг =======");
+        System.out.println("Количество проверок коллизии: "+simulation.getStChecks());
+
+
 
 
 
 
 
     }
-
 }

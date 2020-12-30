@@ -70,14 +70,14 @@ public class ConfigForHuman {
         this.maskProtectionFor = maskProtectionFor;
         this.maskProtectionFrom = maskProtectionFrom;
         // Радиусы
-        this.radiusSoc = radiusSoc;
-        radiusSocSqr = (float)Math.pow(radiusSoc,2);
         this.radiusMan = radiusMan;
-        radiusManSqr = (float)Math.pow(radiusMan,2);
-        this.radiusInf = radiusInf;
-        radiusInfSqr = (float)Math.pow(radiusInf,2);
-        this.radiusHandshake = radiusHandshake;
-        radiusHandshakeSqr = (float)Math.pow(radiusHandshake,2);
+        radiusManSqr = (float)Math.pow(this.radiusMan,2);
+        this.radiusSoc = radiusSoc+radiusMan;
+        radiusSocSqr = (float)Math.pow(this.radiusSoc,2);
+        this.radiusInf = radiusInf+radiusMan;
+        radiusInfSqr = (float)Math.pow(this.radiusInf,2);
+        this.radiusHandshake = radiusHandshake+radiusMan;
+        radiusHandshakeSqr = (float)Math.pow(this.radiusHandshake,2);
     }
 
     // Получить рандомное int число в интервале [a,b]

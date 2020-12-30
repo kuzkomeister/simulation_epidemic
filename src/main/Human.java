@@ -3,11 +3,12 @@ package main;
 public class Human {
     //=====
     static ConfigForHuman config;   // Настройки для людей
+
     // 0 - здоровый, 1 - инфицированный в инкубационном периоде,
     // 2 - инфицированный в клиническом периоде, 3 - выздоровевший, 4 - мертвый
     // 5 - инфицированный без проявления симптомов
     private byte condition;         // Текущее состояние человека
-    private float x,y;              // Координаты человека на карте
+    private double x,y;              // Координаты человека на карте
     private float[] vectorDirection;// Вектор направления человека
 
     public final boolean mask;       // Надета маска
@@ -28,6 +29,11 @@ public class Human {
     public final float probabilityInfection;     // Текущая вероятность удачной попытки заразить
     public final float probabilityGetInfection;  // Текущая вероятность удачной попытки заразиться
 
+    //===== Константы
+    static final int    MAX_POPITOK = 1;    // Количество возможных попыток выбрать направление
+    static final float  MAX_DIST_A = -0.25f,  // Интервал для рандома... проходимое расстояние за одну итерацию
+                        MAX_DIST_B = 0.25f;
+
     //=================
     // Конструктор
     public Human(byte condition, boolean mask, boolean socDist,
@@ -39,8 +45,8 @@ public class Human {
         infectHand = false;
 
         vectorDirection = new float[2];
-        vectorDirection[0] = (float)Math.random()*2-1;
-        vectorDirection[1] = (float)Math.random()*2-1;
+        vectorDirection[0] = (float)(Math.random()*(MAX_DIST_B-MAX_DIST_A)+MAX_DIST_A);
+        vectorDirection[1] = (float)(Math.random()*(MAX_DIST_B-MAX_DIST_A)+MAX_DIST_A);
         //===== Вероятности
         if (mask){
             probabilityInfection = 1.0f-config.maskProtectionFor;
@@ -94,23 +100,26 @@ public class Human {
 
     // Переместится
     private void move(Simulation simulation){
-        float oldDist = simulation.getNearDistance(this);
+        float oldDist = 100;
+        if (socDist)
+            oldDist = simulation.getNearDistance(this);
         boolean res = false;
-        for (int i = 0; i < 100 && !res; ++i) {
+        for (int i = 0; i < MAX_POPITOK && !res; ++i) {
             res = true;
             if (simulation.checkBarrier(x + vectorDirection[0], y + vectorDirection[1])) {
-                float oldx = x, oldy = y;
+                double oldx = x, oldy = y;
                 x += vectorDirection[0];
                 y += vectorDirection[1];
 
                 float distance = simulation.getNearDistance(this);
                 if (distance != -1) {
                     if (socDist) {
-                        if (distance < oldDist) {
-                            x = oldx;
-                            y = oldy;
-                            res = false;
-                        }
+                        if (distance < 5 * config.radiusSocSqr)
+                            if (distance < oldDist) {
+                                x = oldx;
+                                y = oldy;
+                                res = false;
+                            }
                     } else {
                         if (distance < 4 * config.radiusManSqr) {
                             x = oldx;
@@ -119,12 +128,14 @@ public class Human {
                         }
                     }
                 }
-            } else {
+            }
+            else {
                 res = false;
             }
 
             if (!res){
-                setVectorDirection((float)Math.random()-0.5f,(float)Math.random()-0.5f);
+                vectorDirection[0] = (float)(Math.random()*(MAX_DIST_B-MAX_DIST_A)+MAX_DIST_A);
+                vectorDirection[1] = (float)(Math.random()*(MAX_DIST_B-MAX_DIST_A)+MAX_DIST_A);
                 timeChangeDirect = config.getTimeChangeDirect();
             }
         }
@@ -171,7 +182,8 @@ public class Human {
     // Повернуться/сменить направление движения
     private void rotate(){
         if (timeChangeDirect == 0){
-            setVectorDirection((float)Math.random()-0.5f,(float)Math.random()-0.5f);
+            vectorDirection[0] = (float)(Math.random()*(MAX_DIST_B-MAX_DIST_A)+MAX_DIST_A);
+            vectorDirection[1] = (float)(Math.random()*(MAX_DIST_B-MAX_DIST_A)+MAX_DIST_A);
             timeChangeDirect = config.getTimeChangeDirect();
         }
         else{
@@ -237,12 +249,6 @@ public class Human {
         }
     }
 
-    // Поменять направление движения
-    private void setVectorDirection(float x, float y){
-        vectorDirection[0] = x;
-        vectorDirection[1] = y;
-    }
-
     //============= Состояние
     public void setCondition(byte condition){
         this.condition = condition;
@@ -262,19 +268,19 @@ public class Human {
     }
 
     //============ Координаты
-    public float getX(){
+    public double getX(){
         return this.x;
     }
 
-    public void setX(float x) {
+    public void setX(double x) {
         this.x = x;
     }
 
-    public float getY(){
+    public double getY(){
         return this.y;
     }
 
-    public void setY(float y){
+    public void setY(double y){
         this.y = y;
     }
 }

@@ -4,16 +4,21 @@ import java.io.IOException;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws InterruptedException, IOException {
+
+
+        // Переделать работу квадродерева
+
 
         final int MAX_ITER = 50000;
 
         Simulation simulation = new Simulation(
                 32,  32,
-                20,0,5, 0,0,
-                5,0,0,0,0,
-                10,0,1,0,0,
-                5,0,0,0,0,
+                10,0,0, 10,
+                0, 0,0,0,
+                5,0, 0,0,
+                5,0,5, 0,
+                0,0,0,0,
                 // Настройки людей
                 new ConfigForHuman(
                         90,110,
@@ -27,37 +32,43 @@ public class Main {
                         0.4f, 0.1f,
                         0.1f,
                         0.5f, 0.25f,
-                        3.0f, 0.2f, 2.0f,1.0f
+                        2.0f, 0.3f, 1.5f,0.5f
+                ),
+                // Больница
+                new Hospital(
+                        10,
+                        0.05f,0.95f,
+                        200,300,
+                        200,300
                 ),
                 "C:\\Users\\User\\Desktop\\output.txt"
         );
         System.out.println("Инициализирована!");
 
+        //GUI_Main_Menu menu = new GUI_Main_Menu(64,64,simulation.getPeople(),null);
+
+        
         PaintingMap map = new PaintingMap(32,32,Human.config.radiusMan,simulation.getPeople(),simulation.getSneeze());
         map.setVisible(true);
 
-        long time = System.currentTimeMillis();
+        long oldTime = System.currentTimeMillis();
+        boolean STOP = true;
+
         for (int iter = 0; iter < MAX_ITER; iter++){
-            if (simulation.getIterFinal() == 0){
-                simulation.iterate();
-                map.repaint();
-                Thread.sleep(40);
+            simulation.iterate();
+            map.repaint();
+            if (simulation.getIterFinal() != 0 && STOP){
+                STOP = false;
+                simulation.printInfoStat();
             }
-            else{
-                break;
-            }
+            Thread.sleep(35);
         }
-        simulation.printInfoStat();
-        System.out.println("========= Время =======");
+
         long newTime = System.currentTimeMillis();
-        System.out.println("Выполнено за "+(float)(newTime-time)/1000+" секунд");
-        System.out.println("          за "+(float)(newTime-time)/60000+" минут");
-        System.out.println("========= Дебаг =======");
-        System.out.println("Количество проверок коллизии: "+simulation.getStChecks());
-
-
-
-
+        long delta = (newTime - oldTime)/1000;
+        System.out.println("Прошло в секундах: "+delta);
+        delta /= 60.0f;
+        System.out.println("       в минутах: "+delta);
 
 
 

@@ -3,6 +3,7 @@ package main;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.geom.Rectangle2D;
 import java.util.LinkedList;
 
 public class PaintingMap extends Frame {
@@ -13,6 +14,7 @@ public class PaintingMap extends Frame {
     private LinkedList<Human> people;
     private LinkedList<Point> sneeze;
     static final int SIZE = 20;
+    private boolean DEBUG = true;
 
     public PaintingMap(int sizeX, int sizeY, float radius, LinkedList<Human> people, LinkedList<Point> sneeze){
         super("Карта");
@@ -36,7 +38,7 @@ public class PaintingMap extends Frame {
     private void paintQuadTree(QuadTree r, Graphics g, int lvl){
 
         if (r != null) {
-            Rectangle rect = r.getRegion();
+            Rectangle2D rect = r.getRegion();
 
             switch(lvl){
                 case 1 -> g.setColor(Color.BLACK);
@@ -48,7 +50,7 @@ public class PaintingMap extends Frame {
             }
 
             g.fillRect( (int) (rect.getX() * SIZE+7), (int) (rect.getY() * SIZE+31),
-                        (int) (rect.getWidth() * SIZE-1), (int) (rect.getHeight() * SIZE-1));
+                    (int) (rect.getWidth() * SIZE-1), (int) (rect.getHeight() * SIZE-1));
 
             paintQuadTree(r.getChild(0), g, lvl+1);
             paintQuadTree(r.getChild(1), g, lvl+1);
@@ -65,7 +67,7 @@ public class PaintingMap extends Frame {
         g.fillRect(0,0,getWidth(),getHeight());
 
         // Области
-        if (root != null && false) {
+        if (root != null && DEBUG) {
             for (Human human : people) {
                 root.insert(human);
             }
@@ -74,17 +76,19 @@ public class PaintingMap extends Frame {
             root.clear();
         }
 
-        // Соц дистанция
         if (people != null) {
-            for (Human human : people) {
-                if (human.socDist) {
-                    g.setColor(Color.CYAN);
-                    g.fillOval(
-                            (int) (human.getX() * SIZE + 7 - SIZE * 3),
-                            (int) (human.getY() * SIZE + 31 - SIZE * 3),
-                            2 * (int) (Human.config.radiusSoc * SIZE),
-                            2 * (int) (Human.config.radiusSoc * SIZE)
-                    );
+            // Соц дистанция
+            if (DEBUG) {
+                for (Human human : people) {
+                    if (human.socDist) {
+                        g.setColor(Color.CYAN);
+                        g.fillOval(
+                                (int) (human.getX() * SIZE + 7 - SIZE * 2),
+                                (int) (human.getY() * SIZE + 31 - SIZE * 2),
+                                2 * (int) (Human.config.radiusSoc * SIZE),
+                                2 * (int) (Human.config.radiusSoc * SIZE)
+                        );
+                    }
                 }
             }
             // Чих

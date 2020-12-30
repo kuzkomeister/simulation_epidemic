@@ -7,18 +7,19 @@ import java.util.LinkedList;
 
 public class Simulation {
 
-    private LinkedList<Human> people; // список жалких подопытных людишек
     private LinkedList<Point> sneeze; // список чиханий (для анимации)
+
+    private LinkedList<Human> people; // список жалких подопытных людишек
     private int iter = 0;            // номер текущей итерации
     private QuadTree root;           // Корень квадродерева
     private FileWriter file;         // файл в который будет записываться статистика
+    private Hospital hospital;       // Больница
 
     //========== Настройки карты/симуляции
-    public final float sizeX, sizeY; // размеры области по х и у
+    public final double sizeX, sizeY; // размеры области по х и у
     public final int amountMans;     // количество людей на карте при старте симуляции
     public final int amountMask;     // Количество людей с масками
     public final int amountSocDist;  // Количество людей соблюдающих соц. дистанцию
-    public final ConfigForHuman config;// Настройки для людей
 
     //========== Статистика
     private int stContacts = 0;    // количество контактов за сессию
@@ -36,29 +37,34 @@ public class Simulation {
     // Конструктор
     public Simulation(
             // Размер области
-            float sizeX, float sizeY,
-            // Количество людей в состояниях:
-            int amountZd, int amountInfInc, int amountInfSymp,
-            int amountInfNotSymp, int amountVzd,
-            // Количество людей носящих маски в состояниях:
-            int amountMaskZd, int amountMaskInfInc, int amountMaskInfSymp,
-            int amountMaskInfNotSymp, int amountMaskVzd,
-            // Количество людей соблюдающих соц дистанцию в состояниях
-            int amountSocDistZd, int amountSocDistInfInc, int amountSocDistInfSymp,
-            int amountSocDistInfNotSymp, int amountSocDistVzd,
-            // Количество людей носящих маску и соблюдающих соц дистанцию
-            int amountGoodHumanZd, int amountGoodHumanInfInc, int amountGoodHumanInfSymp,
-            int amountGoodHumanInfNotSymp, int amountGoodHumanVzd,
-            // Настройки для людей
+            double sizeX, double sizeY,
+            // Настройки здоровых:
+            // кол-во (здоровых, носящих маски, соблюдающих соц дистанцию, носящих и соблюдающих)
+            int amountZd, int amountMaskZd, int amountSocDistZd, int amountGoodHumanZd,
+            // Настройки инфицированных в инкубационном периоде:
+            // кол-во (здоровых, носящих маски, соблюдающих соц дистанцию, носящих и соблюдающих)
+            int amountInfInc, int amountMaskInfInc, int amountSocDistInfInc, int amountGoodHumanInfInc,
+            // Настройки инфицированных в клиническом периоде:
+            // кол-во (здоровых, носящих маски, соблюдающих соц дистанцию, носящих и соблюдающих)
+            int amountInfSymp, int amountMaskInfSymp, int amountSocDistInfSymp, int amountGoodHumanInfSymp,
+            // Настройки инфицированных бессимптомных:
+            // кол-во (здоровых, носящих маски, соблюдающих соц дистанцию, носящих и соблюдающих)
+            int amountInfNotSymp, int amountMaskInfNotSymp, int amountSocDistInfNotSymp, int amountGoodHumanInfNotSymp,
+            // Настройки выздоровевших:
+            // кол-во (здоровых, носящих маски, соблюдающих соц дистанцию, носящих и соблюдающих)
+            int amountVzd, int amountMaskVzd, int amountSocDistVzd, int amountGoodHumanVzd,
+            // Настройки поведения людей
             ConfigForHuman config,
+            // Больничка
+            Hospital hospital,
             // Название файла вывода или расположение файла вывода
             String fileName
 
     ) throws IOException {
 sneeze = new LinkedList<>();
         people = new LinkedList<>();
-        this.config = config;
         Human.config = config;
+        this.hospital = hospital;
         QuadTree.RADIUS = Math.max(Math.max(config.radiusMan,config.radiusSoc),Math.max(config.radiusHandshake,config.radiusInf));
         root = new QuadTree(new Rectangle(0, 0, (int)sizeX, (int)sizeY));
         file = new FileWriter(fileName,false);
@@ -111,12 +117,12 @@ sneeze = new LinkedList<>();
             }
 
             Human human = new Human((byte)0,mask,socDist,0,0);
-            float rx,ry;  // Рандомные координаты
+            double rx,ry;  // Рандомные координаты
             boolean f;  // Флаг поиска свободного места
             // Распределение по области
             do{
-                rx = (float)Math.random() * sizeX;
-                ry = (float)Math.random() * sizeY;
+                rx = Math.random() * sizeX;
+                ry = Math.random() * sizeY;
                 human.setX(rx);
                 human.setY(ry);
                 float distance = getNearDistance(human);
@@ -160,12 +166,12 @@ sneeze = new LinkedList<>();
             }
 
             Human human = new Human((byte)1,mask,socDist,0,0);
-            float rx,ry;  // Рандомные координаты
+            double rx,ry;  // Рандомные координаты
             boolean f;  // Флаг поиска свободного места
             // Распределение по области
             do{
-                rx = (float)Math.random() * sizeX;
-                ry = (float)Math.random() * sizeY;
+                rx = Math.random() * sizeX;
+                ry = Math.random() * sizeY;
                 human.setX(rx);
                 human.setY(ry);
                 float distance = getNearDistance(human);
@@ -209,12 +215,12 @@ sneeze = new LinkedList<>();
             }
 
             Human human = new Human((byte)2,mask,socDist,0,0);
-            float rx,ry;  // Рандомные координаты
+            double rx,ry;  // Рандомные координаты
             boolean f;  // Флаг поиска свободного места
             // Распределение по области
             do{
-                rx = (float)Math.random() * sizeX;
-                ry = (float)Math.random() * sizeY;
+                rx = Math.random() * sizeX;
+                ry = Math.random() * sizeY;
                 human.setX(rx);
                 human.setY(ry);
                 float distance = getNearDistance(human);
@@ -258,12 +264,12 @@ sneeze = new LinkedList<>();
             }
 
             Human human = new Human((byte)5,mask,socDist,0,0);
-            float rx,ry;  // Рандомные координаты
+            double rx,ry;  // Рандомные координаты
             boolean f;  // Флаг поиска свободного места
             // Распределение по области
             do{
-                rx = (float)Math.random() * sizeX;
-                ry = (float)Math.random() * sizeY;
+                rx = Math.random() * sizeX;
+                ry = Math.random() * sizeY;
                 human.setX(rx);
                 human.setY(ry);
                 float distance = getNearDistance(human);
@@ -307,12 +313,12 @@ sneeze = new LinkedList<>();
             }
 
             Human human = new Human((byte)3,mask,socDist,0,0);
-            float rx,ry;  // Рандомные координаты
+            double rx,ry;  // Рандомные координаты
             boolean f;  // Флаг поиска свободного места
             // Распределение по области
             do{
-                rx = (float)Math.random() * sizeX;
-                ry = (float)Math.random() * sizeY;
+                rx = Math.random() * sizeX;
+                ry = Math.random() * sizeY;
                 human.setX(rx);
                 human.setY(ry);
                 float distance = getNearDistance(human);
@@ -325,6 +331,7 @@ sneeze = new LinkedList<>();
             root.insert(human);
         }
         root.clear();
+        stChecks = 0;
     }
 
     // Основной метод симуляции
@@ -343,7 +350,13 @@ sneeze = new LinkedList<>();
             }
             destroyTree();
         }
-        people.removeIf(man -> man.getCondition() == 4);
+        people.removeIf(human -> human.getCondition() == 4);
+
+
+        if (hospital != null) {
+            hospital.iterate(this);
+        }
+
         iter++;
     }
 
@@ -355,18 +368,33 @@ sneeze = new LinkedList<>();
         for (Human temp:tempList) {
             // Проверка на возможность контакта
             if ((Math.pow(human.getX() - temp.getX(), 2) + Math.pow(human.getY() - temp.getY(), 2)) < Human.config.radiusInfSqr){
+                // Увеличиваем статистику по количеству произошедших встреч
                 incStContacts();
-                if (human.getCondition() == 2 || human.getCondition() == 5){
-                    // Если человек здоровый
-                    if (temp.getCondition() == 0)
+                // Если текущий выбранный человек заражен,а ближайший нет
+                if ((human.getCondition() == 2 || human.getCondition() == 5) && temp.getCondition() == 0){
+                    // если вероятность на его стороне
+                    if (Math.random() < (human.probabilityInfection * temp.probabilityGetInfection)) {
+                        // то заражает
+                        temp.setCondition((byte) 1);
+                        // Статистика состояний
+                        setAmountCond(0,1);
+                        // Увеличиваем статистику по количеству встреч с заражением
+                        incStContactInf();
+                    }
+                }
+                else{
+                    // Если текущий выбранный человек не заражен, а ближайший бессимптомный
+                    if (temp.getCondition() == 5 && human.getCondition() == 0){
                         // если вероятность на его стороне
-                        if (Math.random() < (human.probabilityInfection * temp.probabilityGetInfection)) {
-                            // то заражает
-                            temp.setCondition((byte) 1);
-                            // статистика
+                        if (Math.random() < (temp.probabilityInfection * human.probabilityGetInfection)){
+                            // то заражается
+                            human.setCondition((byte)1);
+                            // Статистика состояний
                             setAmountCond(0,1);
+                            // Увеличиваем статистику по количеству встреч с заражением
                             incStContactInf();
                         }
+                    }
                 }
             }
         }
@@ -406,12 +434,11 @@ sneeze = new LinkedList<>();
                 ++stChecks;
             }
         }
-
         return resDistance;
     }
 
-    // Проверка на возможность перемещения бойчика по карте
-    public boolean checkBarrier(float x, float y){
+    // Проверяет выход за рамки области
+    public boolean checkBarrier(double x, double y){
         if ((x - Human.config.radiusMan > 0) && (x + Human.config.radiusMan < sizeX)) {
             return (y - Human.config.radiusMan > 0) && (y + Human.config.radiusMan < sizeY);
         }
@@ -452,7 +479,7 @@ sneeze = new LinkedList<>();
     }
 
     public void closeFile() throws IOException {
-        file.flush();
+        file.close();
     }
 
     //=================================================
@@ -472,11 +499,18 @@ sneeze = new LinkedList<>();
         System.out.println("--------------------");
         System.out.println("Всего рукопожатий: "+ stHandshakes);
         System.out.println("Заражений от рукопожатий: "+ stHandshakeInf);
+        System.out.println("===== Статистика больницы =====");
+        System.out.println("Всего прошло пациентов: "+hospital.getStAmountPatients());
+        System.out.println("Всего умерло в больнице: "+hospital.getStAmountDied());
+        System.out.println("Всего сделано тестов: "+hospital.getStAmountTest());
+        System.out.println("Количество ложно-отрицательных тестов: "+hospital.getStAmountFalseTest());
+        System.out.println("========= Дебаг =======");
+        System.out.println("Количество проверок коллизии: "+stChecks);
     }
 
     //======== Статистика
     // изменение статистики количества людей в различных состояниях
-    private void setAmountCond(int oldCond, int newCond){
+    public void setAmountCond(int oldCond, int newCond){
         switch (oldCond) {
             case 0 -> amountZd--;
             case 1 -> amountInfInc--;
@@ -518,11 +552,11 @@ sneeze = new LinkedList<>();
 
     //======== Размеры карты
 
-    public float getSizeX(){
+    public double getSizeX(){
         return this.sizeX;
     }
 
-    public float getSizeY(){
+    public double getSizeY(){
         return this.sizeY;
     }
 

@@ -1,8 +1,6 @@
 package main;
 
-import org.w3c.dom.css.Rect;
-
-import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.util.LinkedList;
 
 public class QuadTree {
@@ -22,35 +20,28 @@ public class QuadTree {
     private LinkedList<Human> people;
 
     //===== Область
-    private final Rectangle region;
+    private final Rectangle2D region;
 
     //===== Константы
     // Минимально допущенный размер
     static final int MIN_SIZE = 2;
     // Радиус для проверки пересечения с центральными осями
     static float RADIUS;
-    //
-    static final int MAX_OBJECTS = 1;
+    // Максимальное количество объектов в области до деления
+    static final int MAX_OBJECTS = 3;
 
 /////////////////////
     // Конструктор
-    public QuadTree(Rectangle region){
+    public QuadTree(Rectangle2D region){
         this.region = region;
         people = new LinkedList<>();
         childs = new QuadTree[4];
     }
 
-    // Создание дочернего узла
-    private QuadTree createNode(Rectangle region, LinkedList<Human> peopleList){
-        QuadTree node = new QuadTree(region);
-        node.people = peopleList;
-        node.parent = this;
-        return node;
-    }
-
     // Очистка дерева
     public void clear(){
         people.clear();
+        parent = null;
         for (int i = 0; i < childs.length; ++i){
             if (childs[i] != null){
                 childs[i].clear();
@@ -61,23 +52,23 @@ public class QuadTree {
 
     // Разделение узла на 4 подузла
     private void split(){
-        int subWidth = (int)(region.getWidth() / 2);
-        int subHeight = (int)(region.getHeight() / 2);
-        int x = (int)region.getX();
-        int y = (int)region.getY();
+        double subWidth =  region.getWidth() / 2;
+        double subHeight = region.getHeight() / 2;
+        double x = region.getX();
+        double y = region.getY();
 
-        childs[0] = new QuadTree(new Rectangle(x+subWidth,y,subWidth,subHeight));
+        childs[0] = new QuadTree(new Rectangle2D.Double(x+subWidth,y,subWidth,subHeight));
         childs[0].parent = this;
-        childs[1] = new QuadTree(new Rectangle(x,y,subWidth,subHeight));
+        childs[1] = new QuadTree(new Rectangle2D.Double(x,y,subWidth,subHeight));
         childs[1].parent = this;
-        childs[2] = new QuadTree(new Rectangle(x,y+subHeight,subWidth,subHeight));
+        childs[2] = new QuadTree(new Rectangle2D.Double(x,y+subHeight,subWidth,subHeight));
         childs[2].parent = this;
-        childs[3] = new QuadTree(new Rectangle(x+subWidth,y+subHeight,subWidth,subHeight));
+        childs[3] = new QuadTree(new Rectangle2D.Double(x+subWidth,y+subHeight,subWidth,subHeight));
         childs[3].parent = this;
     }
 
     // Определение объекта места в квадродереве
-    public int getIndex(Human human){
+    private int getIndex(Human human){
         int index = -1;
         double verticalMidpoint = region.getX() + (region.getWidth() / 2);
         double horizontalMidpoint = region.getY() + (region.getHeight() / 2);
@@ -87,7 +78,6 @@ public class QuadTree {
             return index;
         }
         else {
-
             boolean X = human.getX() > verticalMidpoint;
             boolean Y = human.getY() > horizontalMidpoint;
 
@@ -127,7 +117,7 @@ public class QuadTree {
         // Добавление в список объект
         people.add(human);
         // Если много объектов и размеры позваляют, то распределяем объекты по дочерним узлам
-        if (people.size() > MAX_OBJECTS && region.getWidth() > MIN_SIZE) {
+        if (people.size() > MAX_OBJECTS && (region.getWidth() > MIN_SIZE && region.getHeight() > MIN_SIZE)) {
             // Делим область на 4 части, если еще не поделено
             if (childs[0] == null) {
                 split();
@@ -158,47 +148,68 @@ public class QuadTree {
         return returnObjects;
     }
 
-    public Rectangle getRegion(){
+    //=========================
+
+    // Найти узел в котором находится human
+    public QuadTree findNode(Human human){
+        int index = getIndex(human);
+        if (index != -1 && childs[0] != null) {
+            if (!people.contains(human)) {
+                return childs[index].findNode(human);
+            }
+            else return this;
+        }
+        else{
+            if (people.contains(human)){
+                return this;
+            }
+            else{
+                return null;
+            }
+        }
+    }
+
+    public void updateHuman(Human human) {
+        people.remove(human);
+        if (human.getCondition() == 4) {
+            // Переопределяем объект в дереве
+            if (parent != null) {
+                if (parent.parent != null) {
+                    if (parent.parent.parent != null) {
+                        parent.parent.parent.insert(human);
+                    } else {
+                        parent.parent.insert(human);
+                    }
+                } else {
+                    parent.insert(human);
+                }
+            } else {
+                insert(human);
+            }
+            // Уничтожаем пустой нод
+            boolean clear7 = true;
+            for (QuadTree node : parent.childs) {
+                if (!(node.people.size() == 0 && node.childs[0] == null)) {
+                    clear7 = false;
+                    break;
+                }
+            }
+            if (clear7) {
+                for (QuadTree node : parent.childs) {
+                    node.clear();
+                }
+            }
+        }
+    }
+
+    //=========================
+
+    public Rectangle2D getRegion(){
         return region;
     }
 
     public QuadTree getChild(int i){
         return childs[i];
-    }
-
-    public void printUz(int lvl){
-
-        if (people.size() != 0) {
-            System.out.println("== " + lvl + " ==");
-            System.out.println(region);
-
-            for (Human human : people) {
-                System.out.println(human.getX() + " " + human.getY());
-            }
-
-            if (childs[0] != null) {
-                System.out.println("Есть дочки {");
-                childs[0].printUz(lvl + 1);
-                childs[1].printUz(lvl + 1);
-                childs[2].printUz(lvl + 1);
-                childs[3].printUz(lvl + 1);
-                for (int j = 0; j < lvl; ++j)
-                    System.out.print(" ");
-                System.out.println("}");
-            } else {
-                System.out.println("NULL!");
-            }
-        }
-        else{
-            if (childs[0] != null){
-                childs[0].printUz(lvl + 1);
-                childs[1].printUz(lvl + 1);
-                childs[2].printUz(lvl + 1);
-                childs[3].printUz(lvl + 1);
-            }
-        }
-
-
     }
 
 }

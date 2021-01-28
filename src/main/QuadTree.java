@@ -1,5 +1,6 @@
 package main;
 
+import javax.swing.plaf.synth.Region;
 import java.awt.geom.Rectangle2D;
 import java.util.LinkedList;
 
@@ -17,10 +18,16 @@ public class QuadTree {
        +---+---+  */
 
     //===== Внутренности узла
+    // Список людей
     private LinkedList<Human> people;
+    // Количество людей в этой области
+    private int count;
 
     //===== Область
     private final Rectangle2D region;
+
+    //===== Статус
+    private boolean updateStatus;
 
     //===== Константы
     // Минимально допущенный размер
@@ -28,7 +35,7 @@ public class QuadTree {
     // Радиус для проверки пересечения с центральными осями
     static float RADIUS;
     // Максимальное количество объектов в области до деления
-    static final int MAX_OBJECTS = 3;
+    static final int MAX_OBJECTS = 5;
 
 /////////////////////
     // Конструктор
@@ -36,6 +43,8 @@ public class QuadTree {
         this.region = region;
         people = new LinkedList<>();
         childs = new QuadTree[4];
+        count = 0;
+        updateStatus = false;
     }
 
     // Очистка дерева
@@ -104,6 +113,7 @@ public class QuadTree {
 
     // Вставка объекта в дерево
     public void insert(Human human) {
+        count++;
         // Если данная область не поделена
         if (childs[0] != null) {
             // Вычисление куда входит объект
@@ -115,8 +125,8 @@ public class QuadTree {
             }
         }
         // Добавление в список объект
-        people.add(human);
-        // Если много объектов и размеры позваляют, то распределяем объекты по дочерним узлам
+        people.addLast(human);
+        // Если много объектов и размеры позволяют, то распределяем объекты по дочерним узлам
         if (people.size() > MAX_OBJECTS && (region.getWidth() > MIN_SIZE && region.getHeight() > MIN_SIZE)) {
             // Делим область на 4 части, если еще не поделено
             if (childs[0] == null) {
@@ -148,56 +158,63 @@ public class QuadTree {
         return returnObjects;
     }
 
-    //=========================
-
-    // Найти узел в котором находится human
-    public QuadTree findNode(Human human){
-        int index = getIndex(human);
-        if (index != -1 && childs[0] != null) {
-            if (!people.contains(human)) {
-                return childs[index].findNode(human);
+    // Объединение узлов
+    public void join(){
+        // Если есть потомки
+        if (childs[0] != null){
+            // Объединяем в дочерних узлах
+            for (int i = 0; i < childs.length; ++i){
+                childs[i].join();
             }
-            else return this;
-        }
-        else{
-            if (people.contains(human)){
-                return this;
-            }
-            else{
-                return null;
+            // Если можно всех людей в области внести в один узел
+            if (count <= MAX_OBJECTS){
+                // Вносим людей из дочерних в текущий узел
+                for (int i = 0; i < childs.length; ++i){
+                    people.addAll(childs[i].people);
+                }
+                // Удаляем дочерние узлы
+                for (int i = 0; i < childs.length; ++i){
+                    childs[i].clear();
+                    childs[i] = null;
+                }
             }
         }
     }
 
-    public void updateHuman(Human human) {
-        people.remove(human);
-        if (human.getCondition() == 4) {
-            // Переопределяем объект в дереве
-            if (parent != null) {
-                if (parent.parent != null) {
-                    if (parent.parent.parent != null) {
-                        parent.parent.parent.insert(human);
-                    } else {
-                        parent.parent.insert(human);
-                    }
-                } else {
-                    parent.insert(human);
-                }
-            } else {
+    // Обновление содержимого узла
+    public void update(){
+        // Если есть потомки
+        if (childs[0] != null){
+            // Обновляем потомков
+            for (int i = 0; i < childs.length; ++i){
+                childs[i].update();
+            }
+        }
+        // Перемещаем людей текущего узла
+        int n = people.size();
+        if (n > 0) {
+            for (int i = 0; i < n; ++i) {
+                relocate(people.removeFirst());
+            }
+        }
+    }
+
+    // Перемещает человека по дереву
+    private void relocate(Human human){
+        count--;
+        // Если человек в области текущего узла
+        if (region.getX() < human.getX() - RADIUS && human.getX() + RADIUS < region.getWidth() &&
+            region.getY() < human.getY() - RADIUS && human.getY() + RADIUS < region.getHeight()){
+            // то добавляем в эту вершину/ветку
+            insert(human);
+        }
+        // Если нет, то идем на узел выше/больше
+        else{
+            if (parent != null){
+                parent.relocate(human);
+            }
+            else{
                 insert(human);
-            }
-            // Уничтожаем пустой нод
-            boolean clear7 = true;
-            for (QuadTree node : parent.childs) {
-                if (!(node.people.size() == 0 && node.childs[0] == null)) {
-                    clear7 = false;
-                    break;
-                }
-            }
-            if (clear7) {
-                for (QuadTree node : parent.childs) {
-                    node.clear();
-                }
             }
         }
     }

@@ -330,14 +330,14 @@ sneeze = new LinkedList<>();
             people.add(human);
             root.insert(human);
         }
-        root.clear();
         stChecks = 0;
     }
 
     // Основной метод симуляции
-    public void iterate() {
+    public void iterate() throws IOException {
+
+        // обход по лЮдям для делания дел
         for (Human human : people) {
-            buildTree();
             byte oldCond = human.getCondition();
             human.doDela(this);
             // Если изменилось состояние человека
@@ -346,16 +346,22 @@ sneeze = new LinkedList<>();
                 setAmountCond(oldCond,human.getCondition());
                 // Запоминание финальной итерации
                 if (amountInfNotSymp == 0 && amountInfSymp == 0 && amountInfInc == 0)
-                    iterFinal=iter;
+                    iterFinal = iter;
             }
-            destroyTree();
+            //root.update();
         }
+
+        root.update();
+        root.join();
+
         people.removeIf(human -> human.getCondition() == 4);
 
 
         if (hospital != null) {
             hospital.iterate(this);
         }
+
+        writeFile(2);
 
         iter++;
     }
@@ -371,29 +377,15 @@ sneeze = new LinkedList<>();
                 // Увеличиваем статистику по количеству произошедших встреч
                 incStContacts();
                 // Если текущий выбранный человек заражен,а ближайший нет
-                if ((human.getCondition() == 2 || human.getCondition() == 5) && temp.getCondition() == 0){
+                if ((human.getCondition() == 2 || human.getCondition() == 5) && temp.getCondition() == 0) {
                     // если вероятность на его стороне
                     if (Math.random() < (human.probabilityInfection * temp.probabilityGetInfection)) {
                         // то заражает
                         temp.setCondition((byte) 1);
                         // Статистика состояний
-                        setAmountCond(0,1);
+                        setAmountCond(0, 1);
                         // Увеличиваем статистику по количеству встреч с заражением
                         incStContactInf();
-                    }
-                }
-                else{
-                    // Если текущий выбранный человек не заражен, а ближайший бессимптомный
-                    if (temp.getCondition() == 5 && human.getCondition() == 0){
-                        // если вероятность на его стороне
-                        if (Math.random() < (temp.probabilityInfection * human.probabilityGetInfection)){
-                            // то заражается
-                            human.setCondition((byte)1);
-                            // Статистика состояний
-                            setAmountCond(0,1);
-                            // Увеличиваем статистику по количеству встреч с заражением
-                            incStContactInf();
-                        }
                     }
                 }
             }
@@ -444,20 +436,7 @@ sneeze = new LinkedList<>();
         }
         else return false;
     }
-    //=======
-
-    // Создать квадродерево
-    private void buildTree(){
-        for (Human human:people){
-            root.insert(human);
-        }
-    }
-
-    // Срубить квадродерево
-    private void destroyTree(){
-        root.clear();
-    }
-
+    //======
     // Получить список людей в области
     private LinkedList<Human> getRegionPeople(Human human){
         LinkedList<Human> tempList = new LinkedList<>();
@@ -499,11 +478,13 @@ sneeze = new LinkedList<>();
         System.out.println("--------------------");
         System.out.println("Всего рукопожатий: "+ stHandshakes);
         System.out.println("Заражений от рукопожатий: "+ stHandshakeInf);
-        System.out.println("===== Статистика больницы =====");
-        System.out.println("Всего прошло пациентов: "+hospital.getStAmountPatients());
-        System.out.println("Всего умерло в больнице: "+hospital.getStAmountDied());
-        System.out.println("Всего сделано тестов: "+hospital.getStAmountTest());
-        System.out.println("Количество ложно-отрицательных тестов: "+hospital.getStAmountFalseTest());
+        if (hospital != null){
+            System.out.println("===== Статистика больницы =====");
+            System.out.println("Всего прошло пациентов: "+hospital.getStAmountPatients());
+            System.out.println("Всего умерло в больнице: "+hospital.getStAmountDied());
+            System.out.println("Всего сделано тестов: "+hospital.getStAmountTest());
+            System.out.println("Количество ложно-отрицательных тестов: "+hospital.getStAmountFalseTest());
+        }
         System.out.println("========= Дебаг =======");
         System.out.println("Количество проверок коллизии: "+stChecks);
     }
@@ -515,9 +496,11 @@ sneeze = new LinkedList<>();
             case 0 -> amountZd--;
             case 1 -> amountInfInc--;
             case 2 -> amountInfSymp--;
+            case 3 -> amountVzd--;
             case 5 -> amountInfNotSymp--;
         }
         switch (newCond) {
+            case 0 -> amountZd++;
             case 1 -> amountInfInc++;
             case 2 -> amountInfSymp++;
             case 3 -> amountVzd++;
@@ -568,6 +551,10 @@ sneeze = new LinkedList<>();
 
     public LinkedList<Point> getSneeze(){
         return sneeze;
+    }
+
+    public QuadTree getRoot(){
+        return root;
     }
 
 }

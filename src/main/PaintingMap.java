@@ -13,10 +13,10 @@ public class PaintingMap extends Frame {
     public QuadTree root;
     private LinkedList<Human> people;
     private LinkedList<Point> sneeze;
-    static final int SIZE = 20;
-    private boolean DEBUG = true;
+    static final int SIZE = 10;
+    private boolean DEBUG = false;
 
-    public PaintingMap(int sizeX, int sizeY, float radius, LinkedList<Human> people, LinkedList<Point> sneeze){
+    public PaintingMap(int sizeX, int sizeY, float radius, LinkedList<Human> people, LinkedList<Point> sneeze, QuadTree root){
         super("Карта");
         addWindowListener(new WindowAdapter(){
             public void windowClosing(WindowEvent e){
@@ -30,7 +30,8 @@ public class PaintingMap extends Frame {
         this.radius = (int)(radius*SIZE);
         this.people = people;
         this.sneeze = sneeze;
-        this.root = new QuadTree(new Rectangle(0,0,sizeX,sizeY));
+        this.root = root;
+        //this.root = new QuadTree(new Rectangle(0,0,sizeX,sizeY));
 
         setSize(this.sizeX+55,this.sizeY+75);
     }
@@ -68,12 +69,14 @@ public class PaintingMap extends Frame {
 
         // Области
         if (root != null && DEBUG) {
+            /*
             for (Human human : people) {
                 root.insert(human);
             }
+             */
             paintQuadTree(root, g, 1);
 
-            root.clear();
+            //root.clear();
         }
 
         if (people != null) {
@@ -130,6 +133,7 @@ public class PaintingMap extends Frame {
                 //g.setColor(Color.BLACK);
                 //g.drawOval((int)(human.getX()*SIZE+7+SIZE/2),(int)(human.getY()*SIZE+31+SIZE/2),2*radius-SIZE,2*radius-SIZE);
 
+                //=== Контур кружка
                 g.setColor(Color.BLACK);
                 g.drawOval((int) (human.getX() * SIZE + 7), (int) (human.getY() * SIZE + 31), 2 * radius, 2 * radius);
             }

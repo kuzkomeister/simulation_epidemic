@@ -30,7 +30,7 @@ public class Human {
     public final float probabilityGetInfection;  // Текущая вероятность удачной попытки заразиться
 
     //===== Константы
-    static final int    MAX_POPITOK = 1;    // Количество возможных попыток выбрать направление
+    static final int    MAX_POPITOK = 10;    // Количество возможных попыток выбрать направление
     static final float  MAX_DIST_A = -0.25f,  // Интервал для рандома... проходимое расстояние за одну итерацию
                         MAX_DIST_B = 0.25f;
 
@@ -86,7 +86,8 @@ public class Human {
             // Поздороваться/пожать руки
             handshake(simulation);
             // Побеседовать/встретиться с ближайшими в округе
-            meet(simulation);
+            if (condition == 2 || condition == 5)
+                meet(simulation);
             // Полапать свое лицо
             if (condition == 0)
                 touchTheFace(simulation);
